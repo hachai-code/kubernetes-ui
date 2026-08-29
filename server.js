@@ -21,7 +21,7 @@ export const normPod = (p) => ({
   name: p.metadata.name,
   phase: p.status?.phase,
   restarts: (p.status?.containerStatuses ?? []).reduce(
-    (sum, c) => sum + (c.restartCount ?? 0),
+    (sum, container) => sum + (container.restartCount ?? 0),
     0,
   ),
   labels: p.metadata.labels ?? {},
