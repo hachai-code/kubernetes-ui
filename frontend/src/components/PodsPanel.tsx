@@ -1,21 +1,17 @@
-import { useQuery } from '@tanstack/react-query'
 import type { Deployment, Pod } from '../lib/api'
 import { getPods, podsWatchPath } from '../lib/api'
-import { useWatch } from '../lib/useWatch'
+import { useLiveCollection } from '../lib/useLiveCollection'
 import { PodStatusBadge } from './PodStatusBadge'
 
 const cell = 'px-4 py-2 text-sm'
 const headCell = 'px-4 py-2 text-left text-xs font-semibold uppercase tracking-wide text-gray-500'
 
 export function PodsPanel({ namespace, deployment }: { namespace: string; deployment: Deployment }) {
-  const queryKey = ['pods', namespace, deployment.name]
-
-  const { data, isLoading, isError } = useQuery({
-    queryKey,
-    queryFn: () => getPods(namespace, deployment.selector),
-  })
-
-  useWatch<Pod>(queryKey, podsWatchPath(namespace, deployment.selector))
+  const { data, isLoading, isError } = useLiveCollection<Pod>(
+    ['pods', namespace, deployment.name],
+    () => getPods(namespace, deployment.selector),
+    podsWatchPath(namespace, deployment.selector),
+  )
 
   return (
     <section className="mt-6 rounded-lg border border-gray-200 bg-white">
