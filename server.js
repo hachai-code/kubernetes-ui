@@ -2,18 +2,35 @@ import express from "express";
 import { fileURLToPath } from "node:url";
 
 const K8S_PROXY = process.env.K8S_PROXY ?? "http://localhost:8001";
-const PORT = process.env.PORT ?? 3000;
+const PORT = process.env.PORT ?? 4000;
 
 export const normNamespace = (ns) => ({
   name: ns.metadata.name,
   phase: ns.status?.phase,
 });
 
+export function deploymentHealth(d) {
+  const desired = d.spec?.replicas ?? 0;
+  const ready = d.status?.readyReplicas ?? 0;
+  const available = d.status?.availableReplicas ?? 0;
+  const progressing = (d.status?.conditions ?? []).find(
+    (condition) => condition.type === "Progressing",
+  );
+  const stuck = progressing?.status === "False"; // ProgressDeadlineExceeded
+
+  if (desired === 0) return "green";
+  if (stuck || available === 0) return "red";
+  if (ready >= desired) return "green";
+  return "amber";
+}
+
 export const normDeployment = (d) => ({
   name: d.metadata.name,
   ready: d.status?.readyReplicas ?? 0,
   desired: d.spec?.replicas ?? 0,
   image: d.spec?.template?.spec?.containers?.[0]?.image,
+  created: d.metadata.creationTimestamp,
+  health: deploymentHealth(d),
   labels: d.metadata.labels ?? {},
 });
 
