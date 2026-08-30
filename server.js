@@ -16,7 +16,7 @@ export function deploymentHealth(d) {
   const progressing = (d.status?.conditions ?? []).find(
     (condition) => condition.type === "Progressing",
   );
-  const stuck = progressing?.status === "False"; // ProgressDeadlineExceeded
+  const stuck = progressing?.status === "False";
 
   if (desired === 0) return "green";
   if (stuck || available === 0) return "red";
@@ -35,8 +35,6 @@ export const normDeployment = (d) => ({
   labels: d.metadata.labels ?? {},
 });
 
-// kubectl-style status: phase hides failures, so surface the container's
-// waiting/terminated reason (CrashLoopBackOff, ImagePullBackOff, OOMKilled, …).
 export function podStatus(p) {
   if (p.metadata?.deletionTimestamp) return "Terminating";
   for (const container of p.status?.containerStatuses ?? []) {
@@ -100,10 +98,7 @@ app.get(
   }),
 );
 
-app.get("/api/deployments/watch", async (req, res) => {
-  const ns = req.query.namespace;
-  if (!ns) return res.status(400).json({ error: "namespace is required" });
-
+async function watchStream(req, res, path, normalize) {
   res.set({
     "Content-Type": "text/event-stream",
     "Cache-Control": "no-cache",
@@ -115,10 +110,7 @@ app.get("/api/deployments/watch", async (req, res) => {
   req.on("close", () => controller.abort());
 
   try {
-    const upstream = await fetch(
-      `${K8S_PROXY}/apis/apps/v1/namespaces/${encodeURIComponent(ns)}/deployments?watch=true`,
-      { signal: controller.signal },
-    );
+    const upstream = await fetch(K8S_PROXY + path, { signal: controller.signal });
     const decoder = new TextDecoder();
     let buffer = "";
     for await (const chunk of upstream.body) {
@@ -130,10 +122,7 @@ app.get("/api/deployments/watch", async (req, res) => {
         if (!line.trim()) continue;
         const event = JSON.parse(line);
         res.write(
-          `data: ${JSON.stringify({
-            type: event.type,
-            deployment: normDeployment(event.object),
-          })}\n\n`,
+          `data: ${JSON.stringify({ type: event.type, object: normalize(event.object) })}\n\n`,
         );
       }
     }
@@ -144,6 +133,31 @@ app.get("/api/deployments/watch", async (req, res) => {
   } finally {
     res.end();
   }
+}
+
+app.get("/api/deployments/watch", (req, res) => {
+  const ns = req.query.namespace;
+  if (!ns) return res.status(400).json({ error: "namespace is required" });
+  watchStream(
+    req,
+    res,
+    `/apis/apps/v1/namespaces/${encodeURIComponent(ns)}/deployments?watch=true`,
+    normDeployment,
+  );
+});
+
+app.get("/api/pods/watch", (req, res) => {
+  const ns = req.query.namespace;
+  if (!ns) return res.status(400).json({ error: "namespace is required" });
+  const selector = req.query.selector
+    ? `&labelSelector=${encodeURIComponent(req.query.selector)}`
+    : "";
+  watchStream(
+    req,
+    res,
+    `/api/v1/namespaces/${encodeURIComponent(ns)}/pods?watch=true${selector}`,
+    normPod,
+  );
 });
 
 app.get(

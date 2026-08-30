@@ -34,10 +34,20 @@ export const getDeployments = (namespace: string) =>
     `/api/deployments?namespace=${encodeURIComponent(namespace)}`,
   )
 
-export const getPods = (namespace: string, selector: Record<string, string>) => {
-  const labelSelector = Object.entries(selector)
+const toLabelSelector = (selector: Record<string, string>) =>
+  Object.entries(selector)
     .map(([key, value]) => `${key}=${value}`)
     .join(',')
-  const params = new URLSearchParams({ namespace, selector: labelSelector })
+
+export const getPods = (namespace: string, selector: Record<string, string>) => {
+  const params = new URLSearchParams({ namespace, selector: toLabelSelector(selector) })
   return getJson<Pod[]>(`/api/pods?${params}`)
+}
+
+export const deploymentsWatchPath = (namespace: string) =>
+  `/api/deployments/watch?namespace=${encodeURIComponent(namespace)}`
+
+export const podsWatchPath = (namespace: string, selector: Record<string, string>) => {
+  const params = new URLSearchParams({ namespace, selector: toLabelSelector(selector) })
+  return `/api/pods/watch?${params}`
 }

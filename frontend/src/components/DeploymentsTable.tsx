@@ -1,14 +1,12 @@
-import { useEffect } from 'react'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import type { Deployment } from '../lib/api'
-import { getDeployments } from '../lib/api'
+import { getDeployments, deploymentsWatchPath } from '../lib/api'
+import { useWatch } from '../lib/useWatch'
 import { formatAge } from '../lib/age'
 import { HealthChip } from './HealthChip'
 
 const cell = 'px-4 py-2 text-sm'
 const headCell = 'px-4 py-2 text-left text-xs font-semibold uppercase tracking-wide text-gray-500'
-
-type WatchEvent = { type: 'ADDED' | 'MODIFIED' | 'DELETED'; deployment: Deployment }
 
 type DeploymentsTableProps = {
   namespace: string
@@ -17,29 +15,12 @@ type DeploymentsTableProps = {
 }
 
 export function DeploymentsTable({ namespace, selectedName, onSelect }: DeploymentsTableProps) {
-  const queryClient = useQueryClient()
-
   const { data, isLoading, isError } = useQuery({
     queryKey: ['deployments', namespace],
     queryFn: () => getDeployments(namespace),
   })
 
-  useEffect(() => {
-    const source = new EventSource(
-      `/api/deployments/watch?namespace=${encodeURIComponent(namespace)}`,
-    )
-    source.onmessage = (event) => {
-      const { type, deployment } = JSON.parse(event.data) as WatchEvent
-      queryClient.setQueryData<Deployment[]>(['deployments', namespace], (current = []) => {
-        if (type === 'DELETED') return current.filter((d) => d.name !== deployment.name)
-        if (current.some((d) => d.name === deployment.name)) {
-          return current.map((d) => (d.name === deployment.name ? deployment : d))
-        }
-        return [...current, deployment]
-      })
-    }
-    return () => source.close()
-  }, [namespace, queryClient])
+  useWatch<Deployment>(['deployments', namespace], deploymentsWatchPath(namespace))
 
   if (isLoading) return <p className="text-sm text-gray-400">Loading deployments…</p>
   if (isError) return <p className="text-sm text-red-500">Failed to load deployments</p>

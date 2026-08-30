@@ -13,7 +13,7 @@ function tone(status: string): string {
   if (status === 'Running') return 'bg-green-100 text-green-700'
   if (failing.has(status)) return 'bg-red-100 text-red-700'
   if (status === 'Completed' || status === 'Succeeded') return 'bg-gray-100 text-gray-600'
-  return 'bg-amber-100 text-amber-700' // Pending, ContainerCreating, Terminating, Init…
+  return 'bg-amber-100 text-amber-700'
 }
 
 export function PodStatusBadge({ status }: { status: string }) {
