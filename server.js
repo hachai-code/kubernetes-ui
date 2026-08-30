@@ -87,6 +87,52 @@ app.get(
   }),
 );
 
+app.get("/api/deployments/watch", async (req, res) => {
+  const ns = req.query.namespace;
+  if (!ns) return res.status(400).json({ error: "namespace is required" });
+
+  res.set({
+    "Content-Type": "text/event-stream",
+    "Cache-Control": "no-cache",
+    Connection: "keep-alive",
+  });
+  res.flushHeaders();
+
+  const controller = new AbortController();
+  req.on("close", () => controller.abort());
+
+  try {
+    const upstream = await fetch(
+      `${K8S_PROXY}/apis/apps/v1/namespaces/${encodeURIComponent(ns)}/deployments?watch=true`,
+      { signal: controller.signal },
+    );
+    const decoder = new TextDecoder();
+    let buffer = "";
+    for await (const chunk of upstream.body) {
+      buffer += decoder.decode(chunk, { stream: true });
+      let newline;
+      while ((newline = buffer.indexOf("\n")) !== -1) {
+        const line = buffer.slice(0, newline);
+        buffer = buffer.slice(newline + 1);
+        if (!line.trim()) continue;
+        const event = JSON.parse(line);
+        res.write(
+          `data: ${JSON.stringify({
+            type: event.type,
+            deployment: normDeployment(event.object),
+          })}\n\n`,
+        );
+      }
+    }
+  } catch (err) {
+    if (!controller.signal.aborted) {
+      res.write(`event: error\ndata: ${JSON.stringify({ error: err.message })}\n\n`);
+    }
+  } finally {
+    res.end();
+  }
+});
+
 app.get(
   "/api/pods",
   route(async (req, res) => {
