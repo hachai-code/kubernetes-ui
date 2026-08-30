@@ -56,12 +56,23 @@ export const normPod = (p) => ({
 });
 
 async function fetchK8s(path) {
-  const res = await fetch(K8S_PROXY + path);
-  if (!res.ok) throw new Error(`upstream ${res.status}`);
-  return res.json();
+  const response = await fetch(K8S_PROXY + path);
+  if (!response.ok) throw new Error(`upstream ${response.status}`);
+  return response.json();
+}
+
+async function patchK8s(path, body) {
+  const response = await fetch(K8S_PROXY + path, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/merge-patch+json" },
+    body: JSON.stringify(body),
+  });
+  if (!response.ok) throw new Error(`upstream ${response.status}`);
+  return response.json();
 }
 
 const app = express();
+app.use(express.json());
 
 const route = (handler) => async (req, res) => {
   try {
@@ -161,6 +172,24 @@ for (const [name, resource] of Object.entries(resources)) {
     watchStream(req, res, watchPath, resource.normalize);
   });
 }
+
+app.post(
+  "/api/deployments/scale",
+  route(async (req, res) => {
+    const { namespace, name, replicas } = req.body ?? {};
+    if (!namespace || !name || !Number.isInteger(replicas) || replicas < 0) {
+      res.status(400).json({
+        error: "namespace, name, and non-negative integer replicas are required",
+      });
+      return;
+    }
+    const updated = await patchK8s(
+      `/apis/apps/v1/namespaces/${encodeURIComponent(namespace)}/deployments/${encodeURIComponent(name)}`,
+      { spec: { replicas } },
+    );
+    return normDeployment(updated);
+  }),
+);
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   app.listen(PORT, () => console.log(`proxy listening on :${PORT} → ${K8S_PROXY}`));
