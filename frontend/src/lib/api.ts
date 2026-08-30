@@ -9,6 +9,15 @@ export type Deployment = {
   image: string
   created: string
   health: Health
+  selector: Record<string, string>
+  labels: Record<string, string>
+}
+
+export type Pod = {
+  name: string
+  status: string
+  restarts: number
+  node?: string
   labels: Record<string, string>
 }
 
@@ -24,3 +33,11 @@ export const getDeployments = (namespace: string) =>
   getJson<Deployment[]>(
     `/api/deployments?namespace=${encodeURIComponent(namespace)}`,
   )
+
+export const getPods = (namespace: string, selector: Record<string, string>) => {
+  const labelSelector = Object.entries(selector)
+    .map(([key, value]) => `${key}=${value}`)
+    .join(',')
+  const params = new URLSearchParams({ namespace, selector: labelSelector })
+  return getJson<Pod[]>(`/api/pods?${params}`)
+}

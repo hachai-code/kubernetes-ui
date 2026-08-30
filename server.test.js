@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { normNamespace, normDeployment, normPod, deploymentHealth } from "./server.js";
+import { normNamespace, normDeployment, normPod, deploymentHealth, podStatus } from "./server.js";
 
 const deploy = ({ desired, ready, available, progressing }) => ({
   spec: { replicas: desired },
@@ -71,8 +71,35 @@ test("normDeployment defaults missing replica counts to 0", () => {
       image: "nginx:1.27",
       created: "2026-08-01T00:00:00Z",
       health: "red",
+      selector: {},
       labels: { app: "web" },
     },
+  );
+});
+
+test("podStatus surfaces a container's waiting reason over Running phase", () => {
+  assert.equal(
+    podStatus({
+      status: {
+        phase: "Running",
+        containerStatuses: [{ state: { waiting: { reason: "CrashLoopBackOff" } } }],
+      },
+    }),
+    "CrashLoopBackOff",
+  );
+});
+
+test("podStatus falls back to phase for a healthy pod", () => {
+  assert.equal(
+    podStatus({ status: { phase: "Running", containerStatuses: [{ state: { running: {} } }] } }),
+    "Running",
+  );
+});
+
+test("podStatus reports Terminating when deletionTimestamp is set", () => {
+  assert.equal(
+    podStatus({ metadata: { deletionTimestamp: "2026-08-01T00:00:00Z" }, status: { phase: "Running" } }),
+    "Terminating",
   );
 });
 
@@ -80,17 +107,22 @@ test("normPod sums restart counts across containers", () => {
   assert.deepEqual(
     normPod({
       metadata: { name: "web-abc", labels: { app: "web" } },
+      spec: { nodeName: "node-1" },
       status: {
         phase: "Running",
-        containerStatuses: [{ restartCount: 2 }, { restartCount: 1 }],
+        containerStatuses: [
+          { restartCount: 2, state: { running: {} } },
+          { restartCount: 1, state: { running: {} } },
+        ],
       },
     }),
-    { name: "web-abc", phase: "Running", restarts: 3, labels: { app: "web" } },
+    { name: "web-abc", status: "Running", restarts: 3, node: "node-1", labels: { app: "web" } },
   );
 });
 
 test("normPod handles a pod with no containerStatuses", () => {
   const out = normPod({ metadata: { name: "pending" }, status: { phase: "Pending" } });
+  assert.equal(out.status, "Pending");
   assert.equal(out.restarts, 0);
   assert.deepEqual(out.labels, {});
 });

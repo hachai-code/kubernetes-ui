@@ -10,7 +10,13 @@ const headCell = 'px-4 py-2 text-left text-xs font-semibold uppercase tracking-w
 
 type WatchEvent = { type: 'ADDED' | 'MODIFIED' | 'DELETED'; deployment: Deployment }
 
-export function DeploymentsTable({ namespace }: { namespace: string }) {
+type DeploymentsTableProps = {
+  namespace: string
+  selectedName?: string
+  onSelect: (deployment: Deployment) => void
+}
+
+export function DeploymentsTable({ namespace, selectedName, onSelect }: DeploymentsTableProps) {
   const queryClient = useQueryClient()
 
   const { data, isLoading, isError } = useQuery({
@@ -53,7 +59,13 @@ export function DeploymentsTable({ namespace }: { namespace: string }) {
       </thead>
       <tbody>
         {data.map((deployment) => (
-          <tr key={deployment.name} className="border-b border-gray-100 hover:bg-gray-50">
+          <tr
+            key={deployment.name}
+            onClick={() => onSelect(deployment)}
+            className={`cursor-pointer border-b border-gray-100 ${
+              selectedName === deployment.name ? 'bg-blue-50' : 'hover:bg-gray-50'
+            }`}
+          >
             <td className={`${cell} font-medium text-gray-900`}>{deployment.name}</td>
             <td className={`${cell} tabular-nums text-gray-700`}>
               {deployment.ready}/{deployment.desired}

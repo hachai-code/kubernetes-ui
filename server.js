@@ -31,16 +31,29 @@ export const normDeployment = (d) => ({
   image: d.spec?.template?.spec?.containers?.[0]?.image,
   created: d.metadata.creationTimestamp,
   health: deploymentHealth(d),
+  selector: d.spec?.selector?.matchLabels ?? {},
   labels: d.metadata.labels ?? {},
 });
 
+// kubectl-style status: phase hides failures, so surface the container's
+// waiting/terminated reason (CrashLoopBackOff, ImagePullBackOff, OOMKilled, …).
+export function podStatus(p) {
+  if (p.metadata?.deletionTimestamp) return "Terminating";
+  for (const container of p.status?.containerStatuses ?? []) {
+    const reason = container.state?.waiting?.reason ?? container.state?.terminated?.reason;
+    if (reason) return reason;
+  }
+  return p.status?.phase ?? "Unknown";
+}
+
 export const normPod = (p) => ({
   name: p.metadata.name,
-  phase: p.status?.phase,
+  status: podStatus(p),
   restarts: (p.status?.containerStatuses ?? []).reduce(
     (sum, container) => sum + (container.restartCount ?? 0),
     0,
   ),
+  node: p.spec?.nodeName,
   labels: p.metadata.labels ?? {},
 });
 
