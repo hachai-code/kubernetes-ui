@@ -2,9 +2,9 @@ import type { Health } from '../lib/api'
 import { Badge } from './Badge'
 
 const tones: Record<Health, string> = {
-  green: 'bg-green-100 text-green-700',
-  amber: 'bg-amber-100 text-amber-700',
-  red: 'bg-red-100 text-red-700',
+  green: 'bg-emerald-50 text-emerald-700 ring-emerald-600/20',
+  amber: 'bg-amber-50 text-amber-700 ring-amber-600/20',
+  red: 'bg-rose-50 text-rose-700 ring-rose-600/20',
 }
 
 const labels: Record<Health, string> = {

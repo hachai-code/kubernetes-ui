@@ -1,3 +1,3 @@
-export const cell = 'px-4 py-2 text-sm'
+export const cell = 'px-3 py-2 text-[13px]'
 export const headCell =
-  'px-4 py-2 text-left text-xs font-semibold uppercase tracking-wide text-gray-500'
+  'px-3 py-2 text-left text-[11px] font-medium uppercase tracking-wider text-slate-400'

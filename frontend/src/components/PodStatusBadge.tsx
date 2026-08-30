@@ -12,10 +12,11 @@ const failing = new Set([
 ])
 
 function tone(status: string): string {
-  if (status === 'Running') return 'bg-green-100 text-green-700'
-  if (failing.has(status)) return 'bg-red-100 text-red-700'
-  if (status === 'Completed' || status === 'Succeeded') return 'bg-gray-100 text-gray-600'
-  return 'bg-amber-100 text-amber-700'
+  if (status === 'Running') return 'bg-emerald-50 text-emerald-700 ring-emerald-600/20'
+  if (failing.has(status)) return 'bg-rose-50 text-rose-700 ring-rose-600/20'
+  if (status === 'Completed' || status === 'Succeeded')
+    return 'bg-slate-100 text-slate-600 ring-slate-500/20'
+  return 'bg-amber-50 text-amber-700 ring-amber-600/20'
 }
 
 export function PodStatusBadge({ status }: { status: string }) {
