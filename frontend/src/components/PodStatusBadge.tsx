@@ -1,3 +1,5 @@
+import { Badge } from './Badge'
+
 const failing = new Set([
   'CrashLoopBackOff',
   'Error',
@@ -17,12 +19,5 @@ function tone(status: string): string {
 }
 
 export function PodStatusBadge({ status }: { status: string }) {
-  return (
-    <span
-      className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium ${tone(status)}`}
-    >
-      <span className="h-1.5 w-1.5 rounded-full bg-current" />
-      {status}
-    </span>
-  )
+  return <Badge tone={tone(status)} label={status} />
 }

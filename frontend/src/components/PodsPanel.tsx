@@ -1,10 +1,8 @@
 import type { Deployment, Pod } from '../lib/api'
 import { getPods, podsWatchPath } from '../lib/api'
 import { useLiveCollection } from '../lib/useLiveCollection'
+import { cell, headCell } from '../lib/ui'
 import { PodStatusBadge } from './PodStatusBadge'
-
-const cell = 'px-4 py-2 text-sm'
-const headCell = 'px-4 py-2 text-left text-xs font-semibold uppercase tracking-wide text-gray-500'
 
 export function PodsPanel({ namespace, deployment }: { namespace: string; deployment: Deployment }) {
   const { data, isLoading, isError } = useLiveCollection<Pod>(

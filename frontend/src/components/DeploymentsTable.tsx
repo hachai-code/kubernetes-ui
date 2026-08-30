@@ -2,10 +2,8 @@ import type { Deployment } from '../lib/api'
 import { getDeployments, deploymentsWatchPath } from '../lib/api'
 import { useLiveCollection } from '../lib/useLiveCollection'
 import { formatAge } from '../lib/age'
+import { cell, headCell } from '../lib/ui'
 import { HealthChip } from './HealthChip'
-
-const cell = 'px-4 py-2 text-sm'
-const headCell = 'px-4 py-2 text-left text-xs font-semibold uppercase tracking-wide text-gray-500'
 
 type DeploymentsTableProps = {
   namespace: string
