@@ -86,18 +86,6 @@ app.get(
   }),
 );
 
-app.get(
-  "/api/deployments",
-  route(async (req, res) => {
-    const ns = requireNamespace(req, res);
-    if (!ns) return;
-    const { items } = await fetchK8s(
-      `/apis/apps/v1/namespaces/${encodeURIComponent(ns)}/deployments`,
-    );
-    return items.map(normDeployment);
-  }),
-);
-
 async function watchStream(req, res, path, normalize) {
   res.set({
     "Content-Type": "text/event-stream",
@@ -135,45 +123,44 @@ async function watchStream(req, res, path, normalize) {
   }
 }
 
-app.get("/api/deployments/watch", (req, res) => {
-  const ns = requireNamespace(req, res);
-  if (!ns) return;
-  watchStream(
-    req,
-    res,
-    `/apis/apps/v1/namespaces/${encodeURIComponent(ns)}/deployments?watch=true`,
-    normDeployment,
-  );
-});
+const resources = {
+  deployments: {
+    path: (ns) => `/apis/apps/v1/namespaces/${encodeURIComponent(ns)}/deployments`,
+    normalize: normDeployment,
+    selectable: false,
+  },
+  pods: {
+    path: (ns) => `/api/v1/namespaces/${encodeURIComponent(ns)}/pods`,
+    normalize: normPod,
+    selectable: true,
+  },
+};
 
-app.get("/api/pods/watch", (req, res) => {
-  const ns = requireNamespace(req, res);
-  if (!ns) return;
-  const selector = req.query.selector
-    ? `&labelSelector=${encodeURIComponent(req.query.selector)}`
+const labelSelector = (req, resource) =>
+  resource.selectable && req.query.selector
+    ? `labelSelector=${encodeURIComponent(req.query.selector)}`
     : "";
-  watchStream(
-    req,
-    res,
-    `/api/v1/namespaces/${encodeURIComponent(ns)}/pods?watch=true${selector}`,
-    normPod,
-  );
-});
 
-app.get(
-  "/api/pods",
-  route(async (req, res) => {
+for (const [name, resource] of Object.entries(resources)) {
+  app.get(
+    `/api/${name}`,
+    route(async (req, res) => {
+      const ns = requireNamespace(req, res);
+      if (!ns) return;
+      const query = labelSelector(req, resource);
+      const { items } = await fetchK8s(resource.path(ns) + (query ? `?${query}` : ""));
+      return items.map(resource.normalize);
+    }),
+  );
+
+  app.get(`/api/${name}/watch`, (req, res) => {
     const ns = requireNamespace(req, res);
     if (!ns) return;
-    const selector = req.query.selector
-      ? `?labelSelector=${encodeURIComponent(req.query.selector)}`
-      : "";
-    const { items } = await fetchK8s(
-      `/api/v1/namespaces/${encodeURIComponent(ns)}/pods${selector}`,
-    );
-    return items.map(normPod);
-  }),
-);
+    const query = labelSelector(req, resource);
+    const watchPath = `${resource.path(ns)}?watch=true${query ? `&${query}` : ""}`;
+    watchStream(req, res, watchPath, resource.normalize);
+  });
+}
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   app.listen(PORT, () => console.log(`proxy listening on :${PORT} → ${K8S_PROXY}`));
