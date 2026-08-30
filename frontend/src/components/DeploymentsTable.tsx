@@ -44,7 +44,7 @@ export function DeploymentsTable({ namespace, selectedName, onSelect }: Deployme
             key={deployment.name}
             onClick={() => onSelect(deployment)}
             className={`cursor-pointer border-b border-gray-100 ${
-              selectedName === deployment.name ? 'bg-blue-50' : 'hover:bg-gray-50'
+              selectedName === deployment.name ? 'bg-blue-50' : 'hover:bg-gray-100'
             }`}
           >
             <td className={`${cell} font-medium text-gray-900`}>{deployment.name}</td>
