@@ -136,8 +136,8 @@ async function watchStream(req, res, path, normalize) {
 }
 
 app.get("/api/deployments/watch", (req, res) => {
-  const ns = req.query.namespace;
-  if (!ns) return res.status(400).json({ error: "namespace is required" });
+  const ns = requireNamespace(req, res);
+  if (!ns) return;
   watchStream(
     req,
     res,
@@ -147,8 +147,8 @@ app.get("/api/deployments/watch", (req, res) => {
 });
 
 app.get("/api/pods/watch", (req, res) => {
-  const ns = req.query.namespace;
-  if (!ns) return res.status(400).json({ error: "namespace is required" });
+  const ns = requireNamespace(req, res);
+  if (!ns) return;
   const selector = req.query.selector
     ? `&labelSelector=${encodeURIComponent(req.query.selector)}`
     : "";
