@@ -1,9 +1,13 @@
+import { useMutation } from '@tanstack/react-query'
 import type { Deployment } from '../lib/api'
-import { getDeployments, deploymentsWatchPath } from '../lib/api'
+import { getDeployments, deploymentsWatchPath, scaleDeployment } from '../lib/api'
 import { useLiveCollection } from '../lib/useLiveCollection'
 import { formatAge } from '../lib/age'
 import { cell, headCell } from '../lib/ui'
 import { HealthChip } from './HealthChip'
+
+const stepBtn =
+  'flex h-5 w-5 items-center justify-center rounded border border-slate-200 text-slate-500 hover:bg-slate-100 disabled:opacity-40 disabled:hover:bg-transparent'
 
 type DeploymentsTableProps = {
   namespace: string
@@ -17,6 +21,11 @@ export function DeploymentsTable({ namespace, selectedName, onSelect }: Deployme
     () => getDeployments(namespace),
     deploymentsWatchPath(namespace),
   )
+
+  const scale = useMutation({
+    mutationFn: ({ name, replicas }: { name: string; replicas: number }) =>
+      scaleDeployment(namespace, name, replicas),
+  })
 
   return (
     <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
@@ -46,8 +55,32 @@ export function DeploymentsTable({ namespace, selectedName, onSelect }: Deployme
                 }`}
               >
                 <td className={`${cell} font-medium text-slate-800`}>{deployment.name}</td>
-                <td className={`${cell} tabular-nums text-slate-600`}>
-                  {deployment.ready}/{deployment.desired}
+                <td className={cell}>
+                  <div className="flex items-center gap-2">
+                    <button
+                      className={stepBtn}
+                      disabled={deployment.desired === 0 || scale.isPending}
+                      onClick={(event) => {
+                        event.stopPropagation()
+                        scale.mutate({ name: deployment.name, replicas: deployment.desired - 1 })
+                      }}
+                    >
+                      −
+                    </button>
+                    <span className="w-10 text-center tabular-nums text-slate-600">
+                      {deployment.ready}/{deployment.desired}
+                    </span>
+                    <button
+                      className={stepBtn}
+                      disabled={scale.isPending}
+                      onClick={(event) => {
+                        event.stopPropagation()
+                        scale.mutate({ name: deployment.name, replicas: deployment.desired + 1 })
+                      }}
+                    >
+                      +
+                    </button>
+                  </div>
                 </td>
                 <td className={`${cell} font-mono text-[12px] text-slate-500`}>{deployment.image}</td>
                 <td className={`${cell} tabular-nums text-slate-500`}>
