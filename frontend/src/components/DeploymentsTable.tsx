@@ -28,6 +28,7 @@ export function DeploymentsTable({ namespace, selectedName, onSelect }: Deployme
   })
 
   return (
+    <>
     <div className={card}>
       {isLoading && <p className={`${cell} text-slate-400`}>Loading deployments…</p>}
       {isError && <p className={`${cell} text-rose-600`}>Failed to load deployments</p>}
@@ -95,5 +96,9 @@ export function DeploymentsTable({ namespace, selectedName, onSelect }: Deployme
         </table>
       )}
     </div>
+    {scale.isError && (
+      <p className="mt-2 text-[12px] text-rose-600">Scale failed: {scale.error.message}</p>
+    )}
+    </>
   )
 }

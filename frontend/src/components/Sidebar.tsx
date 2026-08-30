@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { getNamespaces } from '../lib/api'
 
@@ -6,21 +7,35 @@ type SidebarProps = {
   onSelect: (name: string) => void
 }
 
+const isSystem = (name: string) => name.startsWith('kube-')
+
 export function Sidebar({ selected, onSelect }: SidebarProps) {
+  const [hideSystem, setHideSystem] = useState(true)
+
   const { data, isLoading, isError } = useQuery({
     queryKey: ['namespaces'],
     queryFn: getNamespaces,
   })
 
+  const namespaces = hideSystem ? data?.filter((ns) => !isSystem(ns.name)) : data
+
   return (
     <aside className="w-60 shrink-0 overflow-y-auto border-r border-slate-200 bg-white">
-      <h2 className="px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
-        Namespaces
-      </h2>
+      <div className="flex items-center justify-between px-3 py-2.5">
+        <h2 className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+          Namespaces
+        </h2>
+        <button
+          onClick={() => setHideSystem((value) => !value)}
+          className="text-[11px] text-slate-400 hover:text-slate-600"
+        >
+          {hideSystem ? 'Show system' : 'Hide system'}
+        </button>
+      </div>
       {isLoading && <p className="px-3 text-[13px] text-slate-400">Loading…</p>}
       {isError && <p className="px-3 text-[13px] text-rose-600">Failed to load</p>}
       <ul className="pb-2">
-        {data?.map((namespace) => {
+        {namespaces?.map((namespace) => {
           const active = selected === namespace.name
           return (
             <li key={namespace.name}>
