@@ -3,7 +3,7 @@ import type { Deployment } from '../lib/api'
 import { getDeployments, deploymentsWatchPath, scaleDeployment } from '../lib/api'
 import { useLiveCollection } from '../lib/useLiveCollection'
 import { formatAge } from '../lib/age'
-import { cell, headCell } from '../lib/ui'
+import { card, cell, headCell } from '../lib/ui'
 import { HealthChip } from './HealthChip'
 
 const stepBtn =
@@ -28,7 +28,7 @@ export function DeploymentsTable({ namespace, selectedName, onSelect }: Deployme
   })
 
   return (
-    <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+    <div className={card}>
       {isLoading && <p className={`${cell} text-slate-400`}>Loading deployments…</p>}
       {isError && <p className={`${cell} text-rose-600`}>Failed to load deployments</p>}
       {data && !data.length && (

@@ -1,7 +1,7 @@
 import type { Deployment, Pod } from '../lib/api'
 import { getPods, podsWatchPath } from '../lib/api'
 import { useLiveCollection } from '../lib/useLiveCollection'
-import { cell, headCell } from '../lib/ui'
+import { card, cell, headCell } from '../lib/ui'
 import { PodStatusBadge } from './PodStatusBadge'
 
 export function PodsPanel({ namespace, deployment }: { namespace: string; deployment: Deployment }) {
@@ -12,7 +12,7 @@ export function PodsPanel({ namespace, deployment }: { namespace: string; deploy
   )
 
   return (
-    <section className="mt-6 overflow-hidden rounded-lg border border-slate-200 bg-white">
+    <section className={`mt-6 ${card}`}>
       <header className="border-b border-slate-200 bg-slate-50 px-3 py-2">
         <h3 className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
           Pods · <span className="font-mono normal-case tracking-normal text-slate-600">{deployment.name}</span>
